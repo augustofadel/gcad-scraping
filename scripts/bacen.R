@@ -3,14 +3,6 @@
 # https://www.bcb.gov.br/estabilidadefinanceira/relacao_instituicoes_funcionamento 
 
 
-# instala pacotes
-packages.list <- c('stringr')
-new.packages <- packages.list[!(packages.list %in% installed.packages()[,'Package'])]
-if(length(new.packages)) {
-  install.packages(new.packages)
-}
-
-
 # ler arquivo sem cabeçalho e linhas insconsistentes ----------------------
 ler_tabela <- 
   function(fn_in, id_var_str = 'CNPJ', sht = 1, verbose = FALSE) {
@@ -228,42 +220,3 @@ purrr::walk2(
 
 
 bacen('2009', '08', 'cooperativas', saida = 'tsv')
-
-
-# eliminar cabeçalho ------------------------------------------------------
-
-library(tidyverse)
-library(openxlsx)
-destino <- '//WARQPRD14V/cempre/GCAD/REGISTRO_ADMINISTRATIVO/BACEN/ORIGINAL/sociedades'
-arquivos <- list.files(destino, '\\.xlsx$|\\.xls$', recursive = T, full.names = T)
-tot <- length(arquivos)
-overw <- T
-# gen_csv <- 
-#   function(fn, new_fn, string = 'CNPJ', d = 1) {
-#     tmp <- suppressMessages(read_excel(fn))
-#     fst <- col_concat(tmp) %>% str_detect(string) %>% which %>% min %>% max(1)
-#     if (min(which(!is.na(tmp[, 2]))) != fst)
-#       warning(
-#         basename(fn),
-#         ':\nVERIFICAR STRING USADA PARA IDENTIFICAR PRIMEIRA LINHA'
-#       )
-#     read_excel(fn, skip = fst - d) %>% 
-#       # write_csv(new_fn)
-#       write.xlsx(new_fn)
-#     message(basename(new_fn))
-#   }
-
-walk(
-  1:length(arquivos),
-  function(i) {
-    message(
-      '[', i, '/', tot, ' (', round(i / tot * 100, 1), '%)] ',
-      basename(arquivos[i])
-    )
-    # new_fn <- str_replace(arquivos[i], '\\.xlsx$|\\.xls$', '.csv')
-    new_fn <- arquivos[i]
-    if (!file.exists(new_fn) | (file.exists(new_fn) & overw)) 
-      ler_tabela(arquivos[i]) %>% 
-      openxlsx::write.xlsx(new_fn)
-  }
-)
