@@ -1,3 +1,8 @@
+# https://fontawesome.com/icons?d=gallery&q=folder
+# https://shiny.rstudio.com/tutorial/written-tutorial/lesson3/
+# https://mastering-shiny.org/
+
+
 library(shiny)
 library(shinydashboard)
 library(shinyFiles)
