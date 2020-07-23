@@ -4,11 +4,11 @@
 
 
 # instala pacotes
-# packages.list <- c('stringr')
-# new.packages <- packages.list[!(packages.list %in% installed.packages()[,'Package'])]
-# if(length(new.packages)) {
-#   install.packages(new.packages)
-# }
+packages.list <- c('stringr')
+new.packages <- packages.list[!(packages.list %in% installed.packages()[,'Package'])]
+if(length(new.packages)) {
+  install.packages(new.packages)
+}
 
 
 # ler arquivo sem cabeçalho e linhas insconsistentes ----------------------
