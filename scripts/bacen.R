@@ -57,166 +57,116 @@ ler_tabela <-
         paste(which(sel_shift), collapse = (', ')),
         ' do arquivo ', basename(fn_in), ' original.'
       )
-    # padroniza nomes de variáveis
-    # names(tmp) <- 
-    #   names(tmp) %>% 
-    #   iconv(from = 'utf-8', to = 'ASCII//TRANSLIT') %>% 
-    #   str_replace_all('[[:space:]]|[[:punct:]]', '_')
-    # retorna df limpo
     tmp[!sel_id_var & !sel_shift, !str_detect(names(tmp), '^\\...')]
   }
 
 
 # download
 bacen <- 
-  function(
-    ano = NULL, #str_sub(Sys.Date(), 1, 4), 
-    mes = NULL, #str_sub(Sys.Date(), 6, 7),
-    tipo = 
-      c(
-        'conglomerados', 
-        'bancos', 
-        'cooperativas', 
-        'sociedades', 
-        'consorcios',
-        'agencias', 
-        'postos', 
-        'pae', 
-        'filiais_adm_consorcios'
-      ), 
-    destino = '//WARQPRD14V/cempre/GCAD/REGISTRO_ADMINISTRATIVO/BACEN/ORIGINAL',
-    saida = 'csv' #c('xlsx', 'csv', 'tsv') 
-  ) {
+  function(ano_mes, tipo, destino, saida) {
     
     require(stringr)
     require(openxlsx)
     require(purrr)
     
-    ulr <- 'http://www.bcb.gov.br/fis/info/cad'
+    if (tipo == 'consorcios')
+      arquivo <- paste0(str_remove(ano_mes, '-'), 'ADMCONSORCIO', '.zip')
+    else if (tipo == 'filiais_adm_consorcios')
+      arquivo <- paste0(str_remove(ano_mes, '-'), 'FILIAISCONS', '.zip')
+    else
+      arquivo <- paste0(str_remove(ano_mes, '-'), toupper(tipo), '.zip')
     
-    for (i in tipo) {
-      if (is.null(mes) & is.null(ano)) {
-        data <-
-          file.path(destino, toupper(tipo)) %>%
-          list.files(pattern = '.xls') %>%
-          str_sub(1, 6) %>%
-          sort(decreasing = T)
-        
-        ano <- as.character(str_sub(data[1], 1, 4):str_sub(Sys.Date(), 1, 4))
-        mes <- 
-          str_sub(data[1], 5, 6):str_sub(Sys.Date(), 6, 7) %>%
-          str_pad(width = 2, side = 'left', pad = '0')
-      }
-      
-      for(j in ano) {
-        for(l in mes) {
-          if (tolower(i) == 'consorcios')
-            arquivo <- paste0(j, l, 'ADMCONSORCIO', '.zip')
-          else if (tolower(i) == 'filiais_adm_consorcios')
-            arquivo <- paste0(j, l, 'FILIAISCONS', '.zip')
-          else
-            arquivo <- paste0(j, l, toupper(i), '.zip')
-          
-          if (is.null(destino))
-            destino <- getwd()
-          
-          message('\n', l, '/', j, ' :: ', i)
-          arq <- try(
-            download.file(
-              url = paste(ulr, tolower(i), arquivo, sep = '/'),
-              destfile = file.path(destino, arquivo),
-              quiet = T
-            ),
-            silent = T
-          )
-          if (class(arq) == 'try-error') {
-            message('Arquivo não foi encontrado.')
-          } else {
-            arquivos_lst <- unzip(file.path(destino, arquivo), list = TRUE)$Name
-            arquivo_xl <- arquivos_lst[str_detect(arquivos_lst, '\\.xls$|\\.xlsx$')]
-            unzip(
-              file.path(destino, arquivo), 
-              files = arquivo_xl, 
-              exdir = file.path(destino, i)
-            )
-            arquivo_xl <- file.path(destino, i, arquivo_xl)
-            if (length(arquivo_xl) > 0) {
-              purrr::walk(
-                arquivo_xl,
-                function(arq_i) {
-                  sht <- 
-                    ifelse(
-                      'Plan1' %in% readxl::excel_sheets(arq_i),
-                      'Plan1',
-                      1
-                    )
-                  tab <- ler_tabela(arq_i, sht = sht, verbose = TRUE)
-                  if ('xlsx' %in% saida)
-                    openxlsx::write.xlsx(
-                      tab, 
-                      str_replace(arq_i, '\\.xls$', '\\.xlsx')
-                    )
-                  if ('tsv' %in% saida)
-                    readr::write_tsv(
-                      tab, 
-                      str_replace(arq_i, '\\.xls$|\\.xlsx$', '\\.txt'), 
-                      na = '',
-                      col_names = TRUE
-                    )
-                  if ('csv' %in% saida)
-                    readr::write_csv(
-                      tab, 
-                      str_replace(arq_i, '\\.xls$|\\.xlsx$', '\\.csv'), 
-                      na = '',
-                      col_names = TRUE
-                    )
-                }
-              )
-              message('Arquivo salvo com sucesso.')
-            } else {
-              message('Nenhum arquivo salvo.')
-            }
-            file.remove(file.path(destino, arquivo))
-          }
-        }
-      }
-    }
-  }
-
-
-
-
-# atualizacao
-# desde o ultimo arquivo armazenado ate mes e ano correntes, todos os tipo
-bacen()
-
-# especifica ano e mes, todos os tipos
-bacen('2017', '04')
-
-# especifica ano, mes e tipo
-bacen('2017', '03', 'conglomerados')
-
-# especifica tipo, ano e mes corrente
-bacen(tipo = 'consorcios')
-
-
-library(lubridate)
-ano <- 2007:2020
-purrr::walk2(
-  rep(str_pad(1:12, 2, 'left', '0'), length(ano)), 
-  rep(ano, each = 12),
-  function(mes, ano) {
-    if (as_date(paste(ano, mes, 1, sep = '-')) < (today() - months(1))) {
-      bacen(
-        ano = ano, 
-        mes = mes, 
-        # tipo = c('postos', 'pae'), 
-        saida = 'tsv'
+    if (is.null(destino))
+      return('Diretório de destino não especificado.')
+    
+    msg <- 
+      tibble::tibble(
+        periodo = ano_mes,
+        tipo = tipo,
+        url = NA_character_,
+        arquivos = 0,
+        status = 'falha'
       )
-      Sys.sleep(runif(1, 5, 10))
+    
+    dir.create(file.path(destino, tipo), showWarnings = FALSE)
+    url_arquivo <- 
+      paste(
+        'https://www.bcb.gov.br/fis/info/cad', 
+        tolower(tipo), 
+        arquivo, 
+        sep = '/'
+      )
+    arq <- 
+      try(
+        download.file(
+          url = url_arquivo,
+          destfile = file.path(destino, arquivo),
+          quiet = T
+        ),
+        silent = T
+      )
+    if (class(arq) == 'try-error') {
+      msg <- 
+        tibble::tibble(
+          periodo = ano_mes,
+          tipo = tipo,
+          url = url_arquivo,
+          arquivos = 0,
+          status = 'erro no download'
+        )
+      return(msg)
+    } else {
+      arquivos_lst <- unzip(file.path(destino, arquivo), list = TRUE)$Name
+      arquivo_xl <- arquivos_lst[str_detect(arquivos_lst, '\\.xls$|\\.xlsx$')]
+      unzip(
+        file.path(destino, arquivo), 
+        files = arquivo_xl, 
+        exdir = file.path(destino, tipo)
+      )
+      arquivo_xl <- file.path(destino, tipo, arquivo_xl)
+      if (length(arquivo_xl) > 0) {
+        purrr::walk(
+          arquivo_xl,
+          function(arq_i) {
+            sht <- 
+              ifelse(
+                'Plan1' %in% readxl::excel_sheets(arq_i),
+                'Plan1',
+                1
+              )
+            tab <- ler_tabela(arq_i, sht = sht, verbose = TRUE)
+            file.remove(arq_i)
+            if ('xlsx' %in% saida)
+              openxlsx::write.xlsx(
+                tab, 
+                str_replace(arq_i, '\\.xls$', '\\.xlsx')
+              )
+            if ('tsv' %in% saida)
+              readr::write_tsv(
+                tab, 
+                str_replace(arq_i, '\\.xls$|\\.xlsx$', '\\.txt'), 
+                na = '',
+                col_names = TRUE
+              )
+            if ('csv' %in% saida)
+              readr::write_csv(
+                tab, 
+                str_replace(arq_i, '\\.xls$|\\.xlsx$', '\\.csv'), 
+                na = '',
+                col_names = TRUE
+              )
+          }
+        )
+        msg <- 
+          tibble::tibble(
+            periodo = ano_mes,
+            tipo = tipo,
+            url = url_arquivo,
+            arquivos = sum(length(arquivo_xl)) * length(saida),
+            status = 'ok'
+          )
+      }
+      file.remove(file.path(destino, arquivo))
     }
+    return(msg)
   }
-)
-
-
-bacen('2009', '08', 'cooperativas', saida = 'tsv')
