@@ -26,12 +26,12 @@ ui <- dashboardPage(
   dashboardHeader(title = 'GCAD scraping'),
   dashboardSidebar(
     sidebarMenu(
-      menuItem('ANATEL', tabName = 'anatel', icon = icon('database')),
+      # menuItem('ANATEL', tabName = 'anatel', icon = icon('database')),
       menuItem('BACEN', tabName = 'bacen', icon = icon('database')),
-      menuItem('Bovespa', tabName = 'bovespa', icon = icon('database')),
+      # menuItem('Bovespa', tabName = 'bovespa', icon = icon('database')),
       menuItem('Cadastur', tabName = 'cadastur', icon = icon('database')),
-      menuItem('CNES', tabName = 'cnes', icon = icon('database')),
-      menuItem('Portal da Trasparência', tabName = 'portal_transparencia', icon = icon('database')),
+      # menuItem('CNES', tabName = 'cnes', icon = icon('database')),
+      # menuItem('Portal da Trasparência', tabName = 'portal_transparencia', icon = icon('database')),
       menuItem('Receita Federal', tabName = 'srf', icon = icon('check'))
     )
   ),
