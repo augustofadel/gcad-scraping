@@ -4,7 +4,6 @@
 
 
 # config ------------------------------------------------------------------
-
 library(shiny)
 library(shinydashboard)
 library(shinyFiles)
@@ -18,6 +17,7 @@ source('../scripts/bacen.R')
 gcad_dir <- '//WARQPRD14V/cempre/GCAD/REGISTRO_ADMINISTRATIVO'
 
 
+# ui ----------------------------------------------------------------------
 ui <- dashboardPage(
   
   dashboardHeader(title = 'GCAD scraping'),
@@ -35,6 +35,7 @@ ui <- dashboardPage(
   
   dashboardBody(
     tabItems(
+      
 # ui :: bacen -------------------------------------------------------------
       tabItem(
         tabName = 'bacen',
@@ -136,26 +137,24 @@ ui <- dashboardPage(
           #   FALSE,
           #   icon = icon('folder-open')
           # ),
+          # verbatimTextOutput('bacen_dir', placeholder = TRUE),
           textInput(
             inputId = 'bacen_dir_sel',
             label = 'Diretório',
             value = file.path(gcad_dir, 'BACEN/ORIGINAL'),
             placeholder = TRUE
           ),
-          verbatimTextOutput('bacen_dir', placeholder = TRUE),
           helpText('*cada tipo de instituição é armazenado em um subdiretório'),
           actionButton(
             inputId = 'bacen_exec',
             label = 'Executar',
             icon = icon('download')
           )
-          # submitButton('Submit'))
         ),
-        # TODO: apagar output texto teste
-        verbatimTextOutput('test_text', placeholder = TRUE),
         # TODO: melhorar visualização tabela final para incluir url (linhas separada?)
         box(dataTableOutput('bacen_tab'))
       ),
+
 # ui :: cadastur ----------------------------------------------------------
       tabItem(
         tabName = 'cadastur',
@@ -165,62 +164,73 @@ ui <- dashboardPage(
           tags$a(href = 'http://dados.turismo.gov.br/cadastur', icon('link'))
         )
       ),
-      
+
+# ui :: cnes --------------------------------------------------------------
       tabItem(
         tabName = 'cnes'
       ),
-      
+
+# ui :: anatel ------------------------------------------------------------
       tabItem(
         tabName = 'anatel'
       ),
-      
+
+# ui :: bovespa -----------------------------------------------------------
       tabItem(
         tabName = 'bovespa'
       ),
-      
+
+# ui :: portal da trasnparencia -------------------------------------------
       tabItem(
         tabName = 'portal_transparencia'
       ),
-      
+
+# ui :: srf ---------------------------------------------------------------
       tabItem(
         tabName = 'srf'
       )
       
     )
   )
+
 )
 
+
+# server ------------------------------------------------------------------
 server <- function(input, output) {
-  set.seed(122)
-  histdata <- rnorm(500)
-  output$plot1 <- renderPlot({
-    data <- histdata[seq_len(input$slider)]
-    hist(data)
-  })
   
-  dirs <- reactiveValues()
-  
-
-
-
-# bacen -------------------------------------------------------------------
-
+# server :: bacen ---------------------------------------------------------
   bacen_periodo <-
     reactive({
       seq(input$bacen_periodo[1], input$bacen_periodo[2], by = 'months') %>%
         str_sub(1, 7)
     })
   bacen_tipo <- reactive(c(input$bacen_tipo1, input$bacen_tipo2))
-  # bacen_ext <- reactive(input$bacen_ext)
-  # input$bacen_dir_sel
-  # input$bacen_dir
-  # input$bacen_exec
   
-  # output$test_text <-
-  #   renderText({bacen_ext()})
-    # renderPrint({bacen_ext()})
-  
-  
+  # shinyDirChoose(
+  #   input = input,
+  #   id = 'bacen_dir_sel',
+  #   roots = c(home = file.path(gcad_dir, 'bacen'))
+  # )
+  # output$bacen_dir <- renderText({gcad_dir})
+  # 
+  # shinyDirChoose(
+  #   input = input,
+  #   id = 'bacen_dir_sel',
+  #   roots = c(home = file.path(gcad_dir, 'bacen'))
+  # )
+  # dirs$bacen <- reactive(input$bacen_dir)
+  # # bacen_dir <- reactive(input$bacen_dir)
+  # output$bacen_dir <- renderText({dirs$bacen})
+  # # observeEvent(
+  # #   ignoreNULL = TRUE,
+  # #   eventExpr = {input$bacen_dir},
+  # #   handlerExpr = {
+  # #     if (!'path' %in% names(bacen_dir()))
+  # #       return()
+  # #     global$datapath <- file.path(gcad_dir, bacen_dir()$path[-1])
+  # #   }
+  # # )
   output$bacen_dir <- renderText({input$bacen_dir_sel})
   
   bacen_result <- eventReactive(input$bacen_exec, {
@@ -248,62 +258,11 @@ server <- function(input, output) {
           searching = FALSE
         )
     )
+  
+# server :: srf -----------------------------------------------------------
 
 
-  
-  
-  
-  # shinyDirChoose(
-  #   input = input,
-  #   id = 'bacen_dir_sel',
-  #   roots = c(home = file.path(gcad_dir, 'bacen'))
-  # )
-  # output$bacen_dir <- renderText({gcad_dir})
-  
-  # shinyDirChoose(
-  #   input = input,
-  #   id = 'bacen_dir_sel',
-  #   roots = c(home = file.path(gcad_dir, 'bacen'))
-  # )
-  # dirs$bacen <- reactive(input$bacen_dir)
-  # # bacen_dir <- reactive(input$bacen_dir)
-  # output$bacen_dir <- renderText({dirs$bacen})
-  # # observeEvent(
-  # #   ignoreNULL = TRUE,
-  # #   eventExpr = {input$bacen_dir},
-  # #   handlerExpr = {
-  # #     if (!'path' %in% names(bacen_dir())) 
-  # #       return()
-  # #     global$datapath <- file.path(gcad_dir, bacen_dir()$path[-1])
-  # #   }
-  # # )
-  
-  
-  
-  # input$bacen_tipo1
-  # input$bacen_tipo2
-  # input$bacen_periodo
-  # input$bacen_dir_sel
-  # input$bacen_dir
-  # input$bacen_ext
-  # input$bacen_exec
-  
-  # ano <- 2007:2020
-  # purrr::walk2(
-  #   rep(str_pad(1:12, 2, 'left', '0'), length(ano)), 
-  #   rep(ano, each = 12),
-  #   function(mes, ano) {
-  #     if (as_date(paste(ano, mes, 1, sep = '-')) < (today() - months(1))) {
-  #       bacen(
-  #         ano = ano, 
-  #         mes = mes, 
-  #         # tipo = c('postos', 'pae'), 
-  #         saida = 'tsv'
-  #       )
-  #       Sys.sleep(runif(1, 5, 10))
-  #     }
-  #   }
-  # )
+
   
   
   
