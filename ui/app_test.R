@@ -17,6 +17,7 @@ source('../scripts/bacen.R')
 
 gcad_dir <- '//WARQPRD14V/cempre/GCAD/REGISTRO_ADMINISTRATIVO'
 srf_url <- 'http://receita.economia.gov.br/orientacao/tributaria/cadastros/cadastro-nacional-de-pessoas-juridicas-cnpj/dados-publicos-cnpj'
+cadastur_url <- 'http://dados.turismo.gov.br/cadastur'
 
 
 # ui ----------------------------------------------------------------------
@@ -28,8 +29,8 @@ ui <- dashboardPage(
       menuItem('ANATEL', tabName = 'anatel', icon = icon('database')),
       menuItem('BACEN', tabName = 'bacen', icon = icon('database')),
       menuItem('Bovespa', tabName = 'bovespa', icon = icon('database')),
+      menuItem('Cadastur', tabName = 'cadastur', icon = icon('database')),
       menuItem('CNES', tabName = 'cnes', icon = icon('database')),
-      menuItem('MTur/Cadastur', tabName = 'cadastur', icon = icon('database')),
       menuItem('Portal da Trasparência', tabName = 'portal_transparencia', icon = icon('database')),
       menuItem('Receita Federal', tabName = 'srf', icon = icon('check'))
     )
@@ -160,10 +161,31 @@ ui <- dashboardPage(
 # ui :: cadastur ----------------------------------------------------------
       tabItem(
         tabName = 'cadastur',
-        h2('Cadastro dos prestadores de serviços turísticos'),
-        h5(
-          'Fonte: Portal Brasileiro de Dados Abertos', 
-          tags$a(href = 'http://dados.turismo.gov.br/cadastur', icon('link'))
+        h1('Cadastur'),
+        box(
+          h2('Cadastro dos prestadores de serviços turísticos'),
+          h5(
+            'Fonte: Portal Brasileiro de Dados Abertos', 
+            tags$a(href = 'http://dados.turismo.gov.br/cadastur', icon('link'))
+          ),
+          tags$br(),
+          # TODO: substituir textInput por shinyDirButton para selecionar diretório bacen
+          textInput(
+            inputId = 'cadastur_dir_sel',
+            label = 'Diretório',
+            value = file.path(gcad_dir, 'CADASTUR'),
+            placeholder = TRUE
+          ),
+          actionButton(
+            inputId = 'cadastur_exec',
+            label = 'Executar download',
+            icon = icon('download')
+          )
+        ),
+        box(
+          tableOutput('cadastur_summary')
+          # TODO: avaliar melhor saída resultados cadastur ui
+          # dataTableOutput('cadastur_tab')
         )
       ),
 
@@ -295,6 +317,73 @@ server <- function(input, output) {
           searching = FALSE
         )
     )
+
+# server :: cadastur ------------------------------------------------------
+  href <- eventReactive(input$cadastur_exec, {
+    xml2::read_html(cadastur_url) %>% 
+      rvest::html_nodes(xpath = '//a') %>% 
+      rvest::html_attr('href')
+  })
+  reactive({
+    purrr::walk(
+      href()[str_detect(href(), '\\.csv$')] %>% 
+        str_extract('20[0-9]{2}') %>% 
+        unique(),
+      ~dir.create(file.path(path, .x))
+    )
+  })
+  cadastur_result <- 
+    reactive({
+      purrr::map_dfr(
+        href()[stringr::str_detect(href(), '\\.csv')],
+        function(arq) {
+          arq_local <-
+            file.path(
+              input$cadastur_dir_sel,
+              basename(arq) %>% stringr::str_extract('20[0-9]{2}'),
+              basename(arq)
+            )
+          message('Verificando ', basename(arq))
+          if (!file.exists(arq_local)) {
+            cat('\nBaixando', basename(arq), '\n\n')
+            res <- 'baixado'
+            tmp <- try(download.file(arq, arq_local))
+            if (class(tmp) == 'try-error')
+              res <- 'erro'
+          } else {
+            res <- 'arquivo local encontrado'
+            message('Arquivo encontrado em ', arq_local)
+          }
+          tibble::tibble(
+            ano = basename(arq) %>% stringr::str_extract('20[0-9]{2}'),
+            url = arq,
+            `arquivo origem` = basename(arq),
+            `arquivo local` = ifelse(res == 'erro', NA_character_, basename(arq_local)),
+            status = res
+          )
+        }
+      )
+    })
+  output$cadastur_summary <- 
+    renderTable(
+      cadastur_result() %>% 
+        dplyr::count(ano, status) %>% 
+        dplyr::mutate(n = round(n) %>% as.character()) %>% 
+        tidyr::spread(status, n, fill = 0)
+    )
+  # TODO: avaliar melhor saída resultados cadastur server
+  # output$cadastur_tab <- 
+  #   renderDataTable(
+  #     cadastur_result() %>% 
+  #       dplyr::select(-url, -`arquivo origem`) %>% 
+  #       dplyr::arrange(dplyr::desc(ano)), 
+  #     options = 
+  #       list(
+  #         lengthMenu = list(c(5, 10), c('5', '10')),
+  #         pageLength = 5,
+  #         searching = FALSE
+  #       )
+  #   )
   
 # server :: srf -----------------------------------------------------------
   srf_arqs_local <- 
