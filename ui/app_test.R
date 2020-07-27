@@ -11,10 +11,12 @@ library(shinyFiles)
 library(lubridate)
 library(purrr)
 library(stringr)
+library(rvest)
 
 source('../scripts/bacen.R')
 
 gcad_dir <- '//WARQPRD14V/cempre/GCAD/REGISTRO_ADMINISTRATIVO'
+srf_url <- 'http://receita.economia.gov.br/orientacao/tributaria/cadastros/cadastro-nacional-de-pessoas-juridicas-cnpj/dados-publicos-cnpj'
 
 
 # ui ----------------------------------------------------------------------
@@ -29,7 +31,7 @@ ui <- dashboardPage(
       menuItem('CNES', tabName = 'cnes', icon = icon('database')),
       menuItem('MTur/Cadastur', tabName = 'cadastur', icon = icon('database')),
       menuItem('Portal da Trasparência', tabName = 'portal_transparencia', icon = icon('database')),
-      menuItem('SRF', tabName = 'srf', icon = icon('check'))
+      menuItem('Receita Federal', tabName = 'srf', icon = icon('check'))
     )
   ),
   
@@ -129,7 +131,7 @@ ui <- dashboardPage(
             selected = 'tsv',
             inline = TRUE
           ),
-          # TODO: substituir textInput por shinyDirButton para selecionar diretório
+          # TODO: substituir textInput por shinyDirButton para selecionar diretório bacen
           # shinyDirButton(
           #   id = 'bacen_dir_sel', 
           #   label = 'Salvar em', 
@@ -147,7 +149,7 @@ ui <- dashboardPage(
           helpText('*cada tipo de instituição é armazenado em um subdiretório'),
           actionButton(
             inputId = 'bacen_exec',
-            label = 'Executar',
+            label = 'Executar download',
             icon = icon('download')
           )
         ),
@@ -187,7 +189,42 @@ ui <- dashboardPage(
 
 # ui :: srf ---------------------------------------------------------------
       tabItem(
-        tabName = 'srf'
+        tabName = 'srf',
+        h1('Receita Federal'),
+        box(
+          h3('Dados públicos CNPJ'),
+          h5(
+            'Fonte: Receita Federal', 
+            tags$a(
+              href = srf_url, 
+              icon('link')
+            )
+          ),
+          tags$br(),
+          # TODO: substituir textInput por shinyDirButton para selecionar diretório srf
+          textInput(
+            inputId = 'srf_dir_sel',
+            label = 'Diretório',
+            value = file.path(gcad_dir, 'RECEITA_FEDERAL/ORIGINAL/CNPJ'),
+            placeholder = TRUE
+          ),
+          h5(strong('Data do arquivo mais recente encontrado')),
+          textOutput('srf_ultima_data_local'),
+          h5(strong('Data da última atualização na SRF')),
+          textOutput('srf_ultima_data'),
+          tags$br(),
+          actionButton(
+            inputId = 'srf_atu',
+            label = 'Atualizar datas',
+            icon = icon('sync-alt')
+          )
+          # TODO: implementar download
+          # actionButton(
+          #   inputId = 'srf_atu',
+          #   label = 'Executar download',
+          #   icon = icon('download')
+          # )
+        )
       )
       
     )
@@ -231,7 +268,7 @@ server <- function(input, output) {
   # #     global$datapath <- file.path(gcad_dir, bacen_dir()$path[-1])
   # #   }
   # # )
-  output$bacen_dir <- renderText({input$bacen_dir_sel})
+  # output$bacen_dir <- renderText({input$bacen_dir_sel})
   
   bacen_result <- eventReactive(input$bacen_exec, {
     expand.grid(
@@ -260,12 +297,37 @@ server <- function(input, output) {
     )
   
 # server :: srf -----------------------------------------------------------
-
-
-
-  
-  
-  
+  srf_arqs_local <- 
+    eventReactive(input$srf_atu, {
+      list.files(
+        path = input$srf_dir_sel,
+        pattern = '\\.zip',
+        recursive = TRUE,
+        full.names = TRUE
+      )
+    })
+  output$srf_ultima_data_local <- 
+    renderText({
+      srf_arqs_local()[str_detect(srf_arqs_local(), '[0-9]{4}/ORIGINAL/.*\\.zip$')] %>%
+      file.mtime() %>%
+      max() %>%
+      format('%d/%m/%Y')
+    })
+  pg <- eventReactive(input$srf_atu, {xml2::read_html(srf_url)})
+  content <- 
+    reactive({
+      pg() %>% 
+        rvest::html_node('#portal-column-content') %>% 
+        rvest::html_text() %>% 
+        stringr::str_split('\n') %>% 
+        unlist() %>% 
+        stringr::str_trim()
+    })
+  output$srf_ultima_data <- 
+    renderText({
+      content()[stringr::str_detect(content(), 'Data de geração.*[0-9]{2}/[0-9]{2}/[0-9]{4}$')] %>% 
+        stringr::str_extract('[0-9]{2}/[0-9]{2}/[0-9]{4}$')
+    })
   
 }
 
