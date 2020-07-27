@@ -351,7 +351,7 @@ server <- function(input, output) {
             if (class(tmp) == 'try-error')
               res <- 'erro'
           } else {
-            res <- 'arquivo local encontrado'
+            res <- 'local'
             message('Arquivo encontrado em ', arq_local)
           }
           tibble::tibble(
@@ -362,14 +362,23 @@ server <- function(input, output) {
             status = res
           )
         }
+      ) %>% dplyr::mutate(
+        status = 
+          factor(
+            status, 
+            levels = c('local', 'baixado', 'erro'),
+            ordered = TRUE
+          )
       )
     })
+  # TODO: avaliar usar renderDataTable
   output$cadastur_summary <- 
     renderTable(
       cadastur_result() %>% 
-        dplyr::count(ano, status) %>% 
+        dplyr::count(ano, status, .drop = FALSE) %>% 
         dplyr::mutate(n = round(n) %>% as.character()) %>% 
-        tidyr::spread(status, n, fill = 0)
+        tidyr::spread(status, n, fill = '0') %>% 
+        dplyr::arrange(dplyr::desc(ano))
     )
   # TODO: avaliar melhor saída resultados cadastur server
   # output$cadastur_tab <- 
