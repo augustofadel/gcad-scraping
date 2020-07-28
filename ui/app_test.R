@@ -155,7 +155,10 @@ ui <- dashboardPage(
           )
         ),
         # TODO: melhorar visualização tabela final para incluir url (linhas separada?)
-        box(dataTableOutput('bacen_tab'))
+        box(
+          h5(strong('Arquivos baixados')),
+          dataTableOutput('bacen_tab')
+        )
       ),
 
 # ui :: cadastur ----------------------------------------------------------
@@ -183,6 +186,7 @@ ui <- dashboardPage(
           )
         ),
         box(
+          h5(strong('Histórico de arquivos')),
           tableOutput('cadastur_summary')
           # TODO: avaliar melhor saída resultados cadastur ui
           # dataTableOutput('cadastur_tab')
@@ -230,9 +234,9 @@ ui <- dashboardPage(
             value = file.path(gcad_dir, 'RECEITA_FEDERAL/ORIGINAL/CNPJ'),
             placeholder = TRUE
           ),
-          h5(strong('Data do arquivo mais recente encontrado')),
+          h5(strong('Data do arquivo local mais recente')),
           textOutput('srf_ultima_data_local'),
-          h5(strong('Data da última atualização na SRF')),
+          h5(strong('Data da última atualização online')),
           textOutput('srf_ultima_data'),
           tags$br(),
           actionButton(
@@ -332,6 +336,7 @@ server <- function(input, output) {
       ~dir.create(file.path(path, .x))
     )
   })
+  # TODO: criar funções independentes para i) verificar arquivos disponíveis e ii) baixar
   cadastur_result <- 
     reactive({
       purrr::map_dfr(
