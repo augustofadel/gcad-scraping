@@ -19,7 +19,10 @@ packages.list <-
   )
 new.packages <- packages.list[!(packages.list %in% installed.packages()[,'Package'])]
 if(length(new.packages) > 0) {
-  install.packages(new.packages)
+  install.packages(
+    new.packages,
+    repos = 'https://cran.fiocruz.br/'
+  )
 }
 
 # config ------------------------------------------------------------------
