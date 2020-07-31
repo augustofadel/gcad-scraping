@@ -1,1 +1,1 @@
-"C:\Program Files (x86)\R\R-4.0.0\bin\R.exe" -e "if(all(installed.packages()[,'Package'] != 'shiny')) install.packages('shiny', repos = 'https://cran.fiocruz.br/');shiny::runApp('//WARQPRD14V/cempre/GCAD/REGISTRO_ADMINISTRATIVO/gcad-scraping/ui/app.R', launch.browser = TRUE)"
+"C:\Program Files (x86)\R\R-4.0.0\bin\R.exe" -e "if(all(installed.packages()[,'Package'] != 'shiny')) install.packages('shiny', repos = 'http://cran.rstudio.com');shiny::runApp('//WARQPRD14V/cempre/GCAD/REGISTRO_ADMINISTRATIVO/gcad-scraping/ui/app.R', launch.browser = TRUE)"

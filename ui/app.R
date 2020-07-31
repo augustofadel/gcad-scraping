@@ -21,7 +21,7 @@ new.packages <- packages.list[!(packages.list %in% installed.packages()[,'Packag
 if(length(new.packages) > 0) {
   install.packages(
     new.packages,
-    repos = 'https://cran.fiocruz.br/'
+    repos = ' http://cran.rstudio.com'
   )
 }
 
