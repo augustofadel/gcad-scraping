@@ -5,7 +5,6 @@
 # instala pacotes
 packages.list <- 
   c(
-    'shiny',
     'shinydashboard',
     'shinydashboard',
     'lubridate',
