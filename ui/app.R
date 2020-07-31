@@ -19,7 +19,7 @@ packages.list <-
     'openxlsx'
   )
 new.packages <- packages.list[!(packages.list %in% installed.packages()[,'Package'])]
-if(length(new.packages)) {
+if(length(new.packages) > 0) {
   install.packages(new.packages)
 }
 
