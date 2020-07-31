@@ -2,6 +2,26 @@
 # https://shiny.rstudio.com/tutorial/written-tutorial/lesson3/
 # https://mastering-shiny.org/
 
+# instala pacotes
+packages.list <- 
+  c(
+    'shiny',
+    'shinydashboard',
+    'shinydashboard',
+    'lubridate',
+    'purrr',
+    'stringr',
+    'rvest',
+    'tools',
+    'readxl',
+    'assertr',
+    'magrittr',
+    'openxlsx'
+  )
+new.packages <- packages.list[!(packages.list %in% installed.packages()[,'Package'])]
+if(length(new.packages)) {
+  install.packages(new.packages)
+}
 
 # config ------------------------------------------------------------------
 library(shiny)
