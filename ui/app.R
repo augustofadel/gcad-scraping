@@ -7,13 +7,13 @@ packages.list <-
   c(
     'shinydashboard',
     'shinydashboard',
-    'shinyFiles',
     'lubridate',
     'purrr',
     'stringr',
     'rvest',
     'tools',
     'readxl',
+    'readr',
     'assertr',
     'magrittr',
     'openxlsx'
@@ -29,7 +29,7 @@ if(length(new.packages) > 0) {
 # config ------------------------------------------------------------------
 library(shiny)
 library(shinydashboard)
-library(shinyFiles)
+# library(shinyFiles)
 # library(shinyalert)
 library(lubridate)
 library(purrr)
