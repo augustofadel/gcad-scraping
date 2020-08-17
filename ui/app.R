@@ -7,6 +7,7 @@ packages.list <-
   c(
     'shinydashboard',
     'shinydashboard',
+    'shinyFiles',
     'lubridate',
     'purrr',
     'stringr',
