@@ -2,21 +2,23 @@
 # https://shiny.rstudio.com/tutorial/written-tutorial/lesson3/
 # https://mastering-shiny.org/
 
+# TODO: perguntar instalação automática de pacotes necessários
+
 # instala pacotes
 packages.list <- 
   c(
-    'shinydashboard',
-    'shinydashboard',
+    'assertr',
+    'dplyr',
     'lubridate',
+    'magrittr',
+    'openxlsx',
     'purrr',
-    'stringr',
-    'rvest',
-    'tools',
     'readxl',
     'readr',
-    'assertr',
-    'magrittr',
-    'openxlsx'
+    'rvest',
+    'shinydashboard',
+    'stringr',
+    'tidyr'
   )
 new.packages <- packages.list[!(packages.list %in% installed.packages()[,'Package'])]
 if(length(new.packages) > 0) {
@@ -319,25 +321,35 @@ server <- function(input, output) {
   # # )
   # output$bacen_dir <- renderText({input$bacen_dir_sel})
   
-  bacen_result <- eventReactive(input$bacen_exec, {
+  bacen_tbl <- eventReactive(input$bacen_exec, {
     expand.grid(
       tipo = bacen_tipo(),
       periodo = bacen_periodo(),
       stringsAsFactors = F
     ) %>%
-      tibble::as_tibble() %>%
-      purrr::pmap_dfr(
-        function(tipo, periodo) {
-          bacen(periodo, tipo, input$bacen_dir_sel, input$bacen_ext)
-        }
-      )
+      tibble::as_tibble()
   })
   
-  output$bacen_tab <- 
-    renderDataTable(
+  output$bacen_tab <-
+    renderDataTable({
       # TODO: incluir url consultada  na tabela final
-      dplyr::select(bacen_result(), -url), 
-      options = 
+      tot <- nrow(bacen_tbl())
+      withProgress(
+        message = 'Baixando',
+        style = 'notification',
+        detail = '',
+        value = 0, {
+          bacen_result <-
+            purrr::pmap_dfr(
+              bacen_tbl(),
+              function(tipo, periodo) {
+                incProgress(1 / tot, detail = paste(periodo, tipo))
+                bacen(periodo, tipo, input$bacen_dir_sel, input$bacen_ext)
+              }
+            )
+        })
+      dplyr::select(bacen_result, -url)},
+      options =
         list(
           lengthMenu = list(c(5, 10), c('5', '10')),
           pageLength = 5,
