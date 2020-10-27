@@ -47,13 +47,13 @@ ler_tabela <-
     # informa linhas excluídas
     if (verbose)
       message(
-        'Excluidas ', start_row - 1, ' linha(s) de cabeçalho não vazias e ', 
+        'Excluidas ', start_row - 1, ' linha(s) de cabecalho nao vazias e ', 
         sum(sel_id_var, sel_shift), ' linha(s) inconsistentes.'
       )
     # warning linhas com campos deslocados
     if (sum(sel_shift > 0))
       warning(
-        'Verificar posição dos campos na(s) linha(s) ', 
+        'Verificar posicao dos campos na(s) linha(s) ', 
         paste(which(sel_shift), collapse = (', ')),
         ' do arquivo ', basename(fn_in), ' original.'
       )
@@ -62,12 +62,15 @@ ler_tabela <-
 
 
 # download
+# TODO: user agent
 bacen <- 
   function(ano_mes, tipo, destino, saida) {
     
     require(stringr)
     require(openxlsx)
     require(purrr)
+    
+    on.exit(closeAllConnections())
     
     if (tipo == 'consorcios')
       arquivo <- paste0(str_remove(ano_mes, '-'), 'ADMCONSORCIO', '.zip')
@@ -88,6 +91,7 @@ bacen <-
         status = 'falha'
       )
     
+    message(file.path(destino, tipo))
     dir.create(file.path(destino, tipo), showWarnings = FALSE)
     url_arquivo <- 
       paste(
@@ -96,16 +100,18 @@ bacen <-
         arquivo, 
         sep = '/'
       )
+    tmp_file <- tempfile()
     arq <- 
       try(
         download.file(
           url = url_arquivo,
-          destfile = file.path(destino, arquivo),
+          destfile = tmp_file, #file.path(destino, arquivo)
+          method = 'wininet',
           quiet = T
         ),
         silent = T
       )
-    if (class(arq) == 'try-error') {
+    if (attr(arq, 'class') == 'try-error') {
       msg <- 
         tibble::tibble(
           periodo = ano_mes,
@@ -116,10 +122,10 @@ bacen <-
         )
       return(msg)
     } else {
-      arquivos_lst <- unzip(file.path(destino, arquivo), list = TRUE)$Name
+      arquivos_lst <- unzip(tmp_file, list = TRUE)$Name
       arquivo_xl <- arquivos_lst[str_detect(arquivos_lst, '\\.xls$|\\.xlsx$')]
       unzip(
-        file.path(destino, arquivo), 
+        tmp_file, 
         files = arquivo_xl, 
         exdir = file.path(destino, tipo)
       )
@@ -155,8 +161,10 @@ bacen <-
                 na = '',
                 col_names = TRUE
               )
+            message('Salvo em ', str_replace(arq_i, 'xls$|xlsx$', saida))
           }
         )
+        # message('Salvo em ', file.path(destino, tipo))
         msg <- 
           tibble::tibble(
             periodo = ano_mes,
@@ -166,7 +174,8 @@ bacen <-
             status = 'ok'
           )
       }
-      file.remove(file.path(destino, arquivo))
+      # file.remove(file.path(destino, arquivo))
+      unlink(tmp_file)
     }
     return(msg)
   }
