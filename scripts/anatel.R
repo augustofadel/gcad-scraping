@@ -5,6 +5,7 @@ anatel <-
     
     require(rvest)
     require(httr)
+    require(tibble)
     require(purrr)
     require(lubridate)
     require(tools)
@@ -29,18 +30,18 @@ anatel <-
           html_attr(date_attr) %>% 
           as.POSIXct()
       })
-    if (attr(date, 'class') == 'try-error') {
+    if (any(attr(date, 'class') == 'try-error')) {
       if (str_detect(attr(date, 'condition'), 'Timeout|timed out'))
         out$status <- 'timeout'
       return(out)
     }
-    out$data_local <- date
+    out$data_online <- date
     message('Última atualização: ', date)
     files_found <- 
       list.files(path = out_dir, pattern = file_name_prefix, full.names = TRUE)
     last_mtime <- 
       suppressWarnings(file.mtime(files_found) %>% max)
-    out$data_online <- last_mtime
+    out$data_local <- last_mtime
     message(
       'Encontrados ', length(files_found), ' arquivos locais com prefixo ', 
       file_name_prefix, '.'
@@ -56,14 +57,14 @@ anatel <-
           out_dir, 
           paste0(
             file_name_prefix, '_', str_remove_all(ymd(date), '-'), '.', 
-            file_ext(file_url)
+            ifelse(file_ext(file_url) != '', file_ext(file_url), 'csv')
           )
         )
       closeAllConnections()
       dw <- download.file(url = file_url, destfile = out_file, quiet = TRUE)
       if (dw == 0) {
         message('Arquivo salvo em ', out_file)
-        out$status <- 'atualizado com sucesso'
+        out$status <- 'atualizado'
       }
       else {
         message('Erro durante download.')
@@ -72,60 +73,7 @@ anatel <-
     }
     else{
       message('Nenhuma atualização disponível.')
-      out$status <- 'nenhuma atualização disponível'
+      out$status <- 'nenhuma atualizacao disponivel'
     }
     out
   }
-
-# anatel_print <- 
-#   function(file_name_prefix, result) {
-#     walk2(
-#       input$file_name_prefix,
-#       result,
-#       ~message(.x, ': ', .y)
-#     )
-#   }
-# 
-# 
-# 
-# library(tidyverse)
-# library(rvest)
-# library(lubridate)
-# library(tools)
-# 
-# out_dir <- '//WARQPRD14V/cempre/GCAD/REGISTRO_ADMINISTRATIVO/ANATEL'
-# out_dir <- 'D:/Users/augusto.fadel/Downloads/ANATEL'
-# 
-# input <- 
-#   tibble(
-#     url = c(
-#       'http://www.dados.gov.br/dataset/empresas-autorizadas-scm',
-#       'http://www.dados.gov.br/dataset/relacao-de-empresas-autorizada-de-servicos-de-comunicacao-movel-pessoal-smp',
-#       'http://www.dados.gov.br/dataset/empresas-autorizadas-de-servico-telefonico-fixo-comutado',
-#       'http://www.dados.gov.br/dataset/empresas-autorizadas-seac'
-#     ),
-#     file_url = c(
-#       'http://www.anatel.gov.br/dadosabertos/PDA/Outorga/Empresas_Autorizadas_SCM.csv',
-#       'http://www.anatel.gov.br/dadosabertos/PDA/Outorga/Empresas_Autorizadas_SMP.csv',
-#       'http://www.anatel.gov.br/dadosabertos/PDA/Outorga/Empresas_Outorgadas_STFC.csv',
-#       'http://www.anatel.gov.br/dadosabertos/PDA/Outorga/Empresas_Autorizadas_SEAC.csv'
-#     ),
-#     file_name_prefix = c(
-#       'SCM',
-#       'SMP',
-#       'STFC',
-#       'SEAC'
-#     ),
-#     date_css_elem = c(
-#       'tr:nth-child(4) .automatic-local-datetime',
-#       'tr:nth-child(4) .automatic-local-datetime',
-#       'tr:nth-child(2) .automatic-local-datetime',
-#       'tr:nth-child(4) .automatic-local-datetime'
-#     ),
-#     date_attr = c(
-#       'data-datetime',
-#       'data-datetime',
-#       'data-datetime',
-#       'data-datetime'
-#     )
-#   )

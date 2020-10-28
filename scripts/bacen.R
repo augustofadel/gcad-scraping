@@ -111,7 +111,7 @@ bacen <-
         ),
         silent = T
       )
-    if (attr(arq, 'class') == 'try-error') {
+    if (class(arq) == 'try-error') {
       msg <- 
         tibble::tibble(
           periodo = ano_mes,
