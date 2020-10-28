@@ -48,6 +48,7 @@ source('../scripts/anatel.R')
   httr::user_agent() %>% 
   httr::set_config()
 
+# TODO: incluir condicao, se gcad_dir não encontrado, usar ~
 gcad_dir <- '//WARQPRD14V/cempre/GCAD/REGISTRO_ADMINISTRATIVO'
 srf_url <- 'http://receita.economia.gov.br/orientacao/tributaria/cadastros/cadastro-nacional-de-pessoas-juridicas-cnpj/dados-publicos-cnpj'
 cadastur_url <- 'http://dados.turismo.gov.br/cadastur'
